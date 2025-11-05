@@ -1,53 +1,1145 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>LendTrack Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LendTrack - Учет передач</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 16px;
+            padding-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .header {
             text-align: center;
-            padding: 50px;
-            background: #667eea;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .main-menu {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .menu-btn {
+            background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+            border: 2px solid var(--tg-theme-hint-color, #e9ecef);
+            border-radius: 16px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .menu-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+
+        .menu-btn.borrow {
+            border-color: var(--success-color);
+            color: var(--success-color);
+        }
+
+        .menu-btn.lend {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .menu-btn .icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .submenu {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .submenu.active {
+            display: block;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--tg-theme-button-color, var(--primary-color));
+            font-size: 16px;
+            cursor: pointer;
+            padding: 10px 0;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .submenu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .submenu-btn {
+            background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+            border: 2px solid var(--tg-theme-hint-color, #e9ecef);
+            border-radius: 12px;
+            padding: 20px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submenu-btn:hover {
+            transform: translateY(-1px);
+            border-color: var(--tg-theme-button-color, var(--primary-color));
+        }
+
+        .submenu-btn .icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        .card {
+            background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid var(--tg-theme-hint-color, #e9ecef);
+            border-radius: 12px;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color, var(--primary-color));
+        }
+
+        .contact-input-container {
+            position: relative;
+        }
+
+        .contact-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--tg-theme-bg-color, #ffffff);
+            border: 2px solid var(--tg-theme-hint-color, #e9ecef);
+            border-radius: 12px;
+            margin-top: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .contact-suggestion {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--tg-theme-hint-color, #e9ecef);
+            transition: background-color 0.2s ease;
+        }
+
+        .contact-suggestion:last-child {
+            border-bottom: none;
+        }
+
+        .contact-suggestion:hover {
+            background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+        }
+
+        .contact-suggestion .username {
+            font-weight: 600;
+            color: var(--tg-theme-button-color, var(--primary-color));
+        }
+
+        .contact-suggestion .name {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #6c757d);
+        }
+
+        .create-contact-btn {
+            background: var(--success-color);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            width: 100%;
+        }
+
+        .selected-contact {
+            margin-top: 12px;
+            padding: 16px;
+            background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+            border-radius: 12px;
+            border: 2px solid var(--tg-theme-button-color, var(--primary-color));
+            display: none;
+        }
+
+        .selected-contact .name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .selected-contact .username {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #6c757d);
+        }
+
+        .contact-example {
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #6c757d);
+            margin-top: 4px;
+        }
+
+        .btn {
+            background: var(--tg-theme-button-color, var(--primary-color));
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            padding: 16px 24px;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            margin-top: 8px;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: var(--success-color);
+        }
+
+        .history-section {
+            display: none;
+        }
+
+        .history-section.active {
+            display: block;
+        }
+
+        .transfer-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--tg-theme-hint-color, #e9ecef);
+        }
+
+        .transfer-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 16px;
+        }
+
+        .item-meta {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color, #6c757d);
+            line-height: 1.4;
+        }
+
+        .status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-pending { 
+            background: #fff3cd; 
+            color: #856404; 
+        }
+        .status-confirmed { 
+            background: #d1edff; 
+            color: #004085; 
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--tg-theme-hint-color, #6c757d);
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+            border-radius: 15px;
+            padding: 6px;
+            margin-bottom: 24px;
+            gap: 4px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 8px;
+            text-align: center;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            background: var(--tg-theme-button-color, var(--primary-color));
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        .success-message {
+            background: var(--success-color);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <h1>🎉 LendTrack Test</h1>
-    <p>Сайт успешно развернут на Netlify!</p>
-    <p>🚀 Все работает!</p>
+    <div class="container">
+        <!-- Шапка -->
+        <div class="header">
+            <h1>📦 LendTrack</h1>
+            <p>Учет взятых и отданных вещей</p>
+        </div>
+
+        <!-- Главное меню -->
+        <div id="mainMenu" class="main-menu">
+            <div class="menu-btn borrow" onclick="showSubmenu('borrow')">
+                <span class="icon">📥</span>
+                ВЗЯЛ
+                <div style="font-size: 14px; opacity: 0.8; margin-top: 5px;">У меня</div>
+            </div>
+            <div class="menu-btn lend" onclick="showSubmenu('lend')">
+                <span class="icon">📤</span>
+                ОТДАЛ
+                <div style="font-size: 14px; opacity: 0.8; margin-top: 5px;">У других</div>
+            </div>
+        </div>
+
+        <!-- История -->
+        <div id="historySection" class="history-section">
+            <div class="tabs">
+                <div class="tab active" onclick="showHistoryTab('active')">Активные</div>
+                <div class="tab" onclick="showHistoryTab('all')">Все</div>
+            </div>
+            <div id="historyContent">
+                <!-- История будет здесь -->
+            </div>
+        </div>
+
+        <!-- Подменю для ВЗЯЛ -->
+        <div id="borrowSubmenu" class="submenu">
+            <button class="back-btn" onclick="showMainMenu()">
+                ← Назад
+            </button>
+            <h3 style="margin-bottom: 20px; text-align: center;">Что взял?</h3>
+            
+            <div class="submenu-grid">
+                <div class="submenu-btn" onclick="showBorrowForm('equipment')">
+                    <span class="icon">🛠️</span>
+                    Оборудование
+                </div>
+                <div class="submenu-btn" onclick="showBorrowForm('finance')">
+                    <span class="icon">💰</span>
+                    Финансы
+                </div>
+                <div class="submenu-btn" onclick="showBorrowForm('other')">
+                    <span class="icon">📦</span>
+                    Другое
+                </div>
+            </div>
+        </div>
+
+        <!-- Подменю для ОТДАЛ -->
+        <div id="lendSubmenu" class="submenu">
+            <button class="back-btn" onclick="showMainMenu()">
+                ← Назад
+            </button>
+            <h3 style="margin-bottom: 20px; text-align: center;">Что отдал?</h3>
+            
+            <div class="submenu-grid">
+                <div class="submenu-btn" onclick="showLendForm('equipment')">
+                    <span class="icon">🛠️</span>
+                    Оборудование
+                </div>
+                <div class="submenu-btn" onclick="showLendForm('finance')">
+                    <span class="icon">💰</span>
+                    Финансы
+                </div>
+                <div class="submenu-btn" onclick="showLendForm('other')">
+                    <span class="icon">📦</span>
+                    Другое
+                </div>
+            </div>
+        </div>
+
+        <!-- Форма для ВЗЯЛ -->
+        <div id="borrowForm" class="form-section">
+            <button class="back-btn" onclick="showSubmenu('borrow')">
+                ← Назад
+            </button>
+            
+            <div class="card">
+                <h3 id="borrowFormTitle">Взял оборудование</h3>
+                
+                <div class="form-group">
+                    <label>Что взял?</label>
+                    <input type="text" id="borrowItemName" placeholder="Например: Шуруповерт, Дрель, Книга..." required>
+                </div>
+
+                <div class="form-group">
+                    <label>У кого взял? 👤</label>
+                    <div class="contact-input-container">
+                        <input type="text" 
+                               id="borrowContactInput" 
+                               placeholder="@username или имя контакта"
+                               oninput="searchContacts('borrow', this.value)"
+                               onfocus="showContactSuggestions('borrow')">
+                        <div class="contact-suggestions" id="borrowContactSuggestions">
+                            <!-- Подсказки будут здесь -->
+                        </div>
+                    </div>
+                    <div class="contact-example">
+                        Примеры: @ivanov, Иван Петров
+                    </div>
+                    <div id="borrowSelectedContact" class="selected-contact">
+                        <div class="name" id="borrowContactName"></div>
+                        <div class="username" id="borrowContactUsername"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Когда вернуть? 📅</label>
+                    <input type="date" id="borrowDueDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Описание (необязательно) 📝</label>
+                    <textarea id="borrowDescription" rows="3" placeholder="Дополнительная информация..."></textarea>
+                </div>
+
+                <button class="btn btn-success" onclick="createBorrowTransaction()">
+                    ✅ Подтвердить запись
+                </button>
+            </div>
+        </div>
+
+        <!-- Форма для ОТДАЛ -->
+        <div id="lendForm" class="form-section">
+            <button class="back-btn" onclick="showSubmenu('lend')">
+                ← Назад
+            </button>
+            
+            <div class="card">
+                <h3 id="lendFormTitle">Отдал оборудование</h3>
+                
+                <div class="form-group">
+                    <label>Что отдал?</label>
+                    <input type="text" id="lendItemName" placeholder="Например: Шуруповерт, Дрель, Книга..." required>
+                </div>
+
+                <div class="form-group">
+                    <label>Кому отдал? 👤</label>
+                    <div class="contact-input-container">
+                        <input type="text" 
+                               id="lendContactInput" 
+                               placeholder="@username или имя контакта"
+                               oninput="searchContacts('lend', this.value)"
+                               onfocus="showContactSuggestions('lend')">
+                        <div class="contact-suggestions" id="lendContactSuggestions">
+                            <!-- Подсказки будут здесь -->
+                        </div>
+                    </div>
+                    <div class="contact-example">
+                        Примеры: @ivanov, Иван Петров
+                    </div>
+                    <div id="lendSelectedContact" class="selected-contact">
+                        <div class="name" id="lendContactName"></div>
+                        <div class="username" id="lendContactUsername"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Когда вернут? 📅</label>
+                    <input type="date" id="lendDueDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Описание (необязательно) 📝</label>
+                    <textarea id="lendDescription" rows="3" placeholder="Дополнительная информация..."></textarea>
+                </div>
+
+                <button class="btn btn-success" onclick="createLendTransaction()">
+                    ✅ Подтвердить запись
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        
+        // Данные приложения
+        let transactions = JSON.parse(localStorage.getItem('lendtrack_transactions') || '[]');
+        let contactsDatabase = JSON.parse(localStorage.getItem('lendtrack_contacts') || '[]');
+        let recentContacts = JSON.parse(localStorage.getItem('lendtrack_recent_contacts') || '[]');
+        let currentTransactionType = '';
+        let currentCategory = '';
+        let selectedContact = null;
+
+        // Инициализация приложения
+        function initApp() {
+            tg.expand();
+            tg.ready();
+            
+            // Загружаем тестовые данные
+            loadSampleData();
+            
+            // Включаем кнопку для закрытия
+            tg.BackButton.show();
+            tg.BackButton.onClick(handleBackButton);
+            
+            // Закрытие подсказок при клике вне поля
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.contact-input-container')) {
+                    hideContactSuggestions('borrow');
+                    hideContactSuggestions('lend');
+                }
+            });
+            
+            console.log('LendTrack запущен!');
+        }
+
+        // Загрузка тестовых данных
+        function loadSampleData() {
+            if (transactions.length === 0) {
+                transactions = [
+                    {
+                        id: 1,
+                        type: 'borrow',
+                        category: 'equipment',
+                        item: 'Шуруповерт аккумуляторный',
+                        contact: { username: '@demo', name: 'Демо пользователь' },
+                        date: '2024-01-15',
+                        dueDate: '2024-01-25',
+                        status: 'pending',
+                        description: 'Пример записи'
+                    }
+                ];
+                saveTransactions();
+            }
+            
+            if (contactsDatabase.length === 0) {
+                contactsDatabase = [
+                    { username: '@ivanov', name: 'Иван Петров' },
+                    { username: '@maria_s', name: 'Мария Сидорова' },
+                    { username: '@alex_kozlov', name: 'Алексей Козлов' }
+                ];
+                saveContacts();
+            }
+            
+            renderHistory();
+        }
+
+        // Поиск контактов
+        function searchContacts(formType, query) {
+            const suggestionsContainer = document.getElementById(formType + 'ContactSuggestions');
+            
+            if (!query || query.length < 1) {
+                showRecentContacts(formType);
+                return;
+            }
+
+            query = query.toLowerCase();
+            
+            // Ищем в базе контактов
+            const results = contactsDatabase.filter(contact => 
+                contact.username.toLowerCase().includes(query) ||
+                contact.name.toLowerCase().includes(query)
+            );
+
+            // Ищем в недавних контактах
+            const recentResults = recentContacts.filter(contact =>
+                contact.username.toLowerCase().includes(query) ||
+                contact.name.toLowerCase().includes(query)
+            );
+
+            // Объединяем результаты
+            const allResults = [...recentResults];
+            results.forEach(contact => {
+                if (!allResults.some(c => c.username === contact.username)) {
+                    allResults.push(contact);
+                }
+            });
+
+            // Добавляем опцию создания нового контакта
+            if (query.startsWith('@') && query.length > 1) {
+                const username = query;
+                const exists = allResults.some(contact => contact.username.toLowerCase() === username.toLowerCase());
+                
+                if (!exists) {
+                    displayContactSuggestions(formType, allResults, username);
+                    return;
+                }
+            }
+
+            displayContactSuggestions(formType, allResults);
+        }
+
+        function showRecentContacts(formType) {
+            const suggestionsContainer = document.getElementById(formType + 'ContactSuggestions');
+            
+            if (recentContacts.length === 0) {
+                suggestionsContainer.innerHTML = `
+                    <div class="contact-suggestion">
+                        <div>Начните вводить @username</div>
+                        <div class="name">Например: @ivanov</div>
+                    </div>
+                `;
+            } else {
+                displayContactSuggestions(formType, recentContacts);
+            }
+        }
+
+        function displayContactSuggestions(formType, contacts, newUsername = null) {
+            const suggestionsContainer = document.getElementById(formType + 'ContactSuggestions');
+            
+            let html = '';
+
+            if (newUsername) {
+                html += `
+                    <div class="contact-suggestion" onclick="createNewContact('${formType}', '${newUsername}')">
+                        <div class="username">${newUsername}</div>
+                        <div class="name">Создать новый контакт</div>
+                    </div>
+                `;
+            }
+
+            if (contacts.length === 0 && !newUsername) {
+                html += `
+                    <div class="contact-suggestion">
+                        <div>Контакты не найдены</div>
+                        <div class="name">Введите @username чтобы создать</div>
+                    </div>
+                `;
+            } else {
+                html += contacts.map(contact => `
+                    <div class="contact-suggestion" onclick="selectContactFromSuggestions('${formType}', '${contact.username}')">
+                        <div class="username">${contact.username}</div>
+                        <div class="name">${contact.name}</div>
+                    </div>
+                `).join('');
+            }
+
+            suggestionsContainer.innerHTML = html;
+        }
+
+        // Создание нового контакта
+        function createNewContact(formType, username) {
+            const name = prompt(`Введите имя для контакта ${username}:`, username.replace('@', ''));
+            if (!name) return;
+
+            const newContact = {
+                username: username.startsWith('@') ? username : '@' + username,
+                name: name
+            };
+
+            // Добавляем в базу контактов
+            contactsDatabase.push(newContact);
+            saveContacts();
+
+            // Добавляем в недавние
+            addToRecentContacts(newContact);
+
+            // Выбираем этот контакт
+            selectContact(formType, newContact);
+
+            tg.showAlert(`✅ Контакт ${newContact.username} создан!`);
+        }
+
+        function addToRecentContacts(contact) {
+            recentContacts = recentContacts.filter(c => c.username !== contact.username);
+            recentContacts.unshift(contact);
+            if (recentContacts.length > 10) {
+                recentContacts = recentContacts.slice(0, 10);
+            }
+            saveContacts();
+        }
+
+        function showContactSuggestions(formType) {
+            const suggestionsContainer = document.getElementById(formType + 'ContactSuggestions');
+            suggestionsContainer.style.display = 'block';
+            showRecentContacts(formType);
+        }
+
+        function hideContactSuggestions(formType) {
+            const suggestionsContainer = document.getElementById(formType + 'ContactSuggestions');
+            suggestionsContainer.style.display = 'none';
+        }
+
+        function selectContactFromSuggestions(formType, username) {
+            const contact = contactsDatabase.find(c => c.username === username) || 
+                           recentContacts.find(c => c.username === username);
+            
+            if (contact) {
+                selectContact(formType, contact);
+                hideContactSuggestions(formType);
+            }
+        }
+
+        function selectContact(formType, contact) {
+            selectedContact = contact;
+            addToRecentContacts(contact);
+            
+            const input = document.getElementById(formType + 'ContactInput');
+            const selectedContainer = document.getElementById(formType + 'SelectedContact');
+            const nameElement = document.getElementById(formType + 'ContactName');
+            const usernameElement = document.getElementById(formType + 'ContactUsername');
+            
+            input.value = contact.username;
+            nameElement.textContent = contact.name;
+            usernameElement.textContent = contact.username;
+            selectedContainer.style.display = 'block';
+            
+            tg.HapticFeedback.impactOccurred('soft');
+        }
+
+        // Навигация
+        function handleBackButton() {
+            if (document.getElementById('borrowForm').classList.contains('active') || 
+                document.getElementById('lendForm').classList.contains('active')) {
+                showSubmenu(currentTransactionType);
+            } else if (document.getElementById('borrowSubmenu').classList.contains('active') || 
+                      document.getElementById('lendSubmenu').classList.contains('active')) {
+                showMainMenu();
+            } else {
+                tg.BackButton.hide();
+            }
+        }
+
+        function showMainMenu() {
+            hideAllSections();
+            document.getElementById('mainMenu').style.display = 'grid';
+            document.getElementById('historySection').classList.add('active');
+            tg.BackButton.hide();
+        }
+
+        function showSubmenu(type) {
+            hideAllSections();
+            currentTransactionType = type;
+            document.getElementById(type + 'Submenu').classList.add('active');
+            tg.BackButton.show();
+        }
+
+        function showBorrowForm(category) {
+            hideAllSections();
+            currentCategory = category;
+            
+            const titles = {
+                'equipment': 'Взял оборудование',
+                'finance': 'Взял в долг',
+                'other': 'Взял другое'
+            };
+            
+            document.getElementById('borrowFormTitle').textContent = titles[category];
+            document.getElementById('borrowForm').classList.add('active');
+            
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            document.getElementById('borrowDueDate').value = nextWeek.toISOString().split('T')[0];
+            
+            document.getElementById('borrowSelectedContact').style.display = 'none';
+            document.getElementById('borrowContactInput').value = '';
+            selectedContact = null;
+            
+            tg.BackButton.show();
+        }
+
+        function showLendForm(category) {
+            hideAllSections();
+            currentCategory = category;
+            
+            const titles = {
+                'equipment': 'Отдал оборудование',
+                'finance': 'Одолжил деньги',
+                'other': 'Отдал другое'
+            };
+            
+            document.getElementById('lendFormTitle').textContent = titles[category];
+            document.getElementById('lendForm').classList.add('active');
+            
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            document.getElementById('lendDueDate').value = nextWeek.toISOString().split('T')[0];
+            
+            document.getElementById('lendSelectedContact').style.display = 'none';
+            document.getElementById('lendContactInput').value = '';
+            selectedContact = null;
+            
+            tg.BackButton.show();
+        }
+
+        function hideAllSections() {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.querySelectorAll('.submenu').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.querySelectorAll('.form-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById('historySection').classList.remove('active');
+            hideContactSuggestions('borrow');
+            hideContactSuggestions('lend');
+        }
+
+        // Создание транзакций
+        async function createBorrowTransaction() {
+            const itemName = document.getElementById('borrowItemName').value.trim();
+            const dueDate = document.getElementById('borrowDueDate').value;
+            const description = document.getElementById('borrowDescription').value.trim();
+
+            if (!validateForm(itemName, dueDate)) return;
+
+            const newTransaction = {
+                id: Date.now(),
+                type: 'borrow',
+                category: currentCategory,
+                item: itemName,
+                contact: selectedContact,
+                date: new Date().toISOString().split('T')[0],
+                dueDate: dueDate,
+                status: 'pending',
+                description: description
+            };
+
+            transactions.unshift(newTransaction);
+            saveTransactions();
+            
+            // Отправляем уведомление
+            const notificationSent = await sendNotificationToUser(selectedContact, newTransaction);
+            
+            if (notificationSent) {
+                showSuccessMessage('✅ Запись создана! Уведомление отправлено.');
+            } else {
+                showSuccessMessage('✅ Запись создана!');
+            }
+            
+            resetForm('borrow');
+            renderHistory();
+            
+            setTimeout(() => {
+                showMainMenu();
+            }, 2000);
+        }
+
+        async function createLendTransaction() {
+            const itemName = document.getElementById('lendItemName').value.trim();
+            const dueDate = document.getElementById('lendDueDate').value;
+            const description = document.getElementById('lendDescription').value.trim();
+
+            if (!validateForm(itemName, dueDate)) return;
+
+            const newTransaction = {
+                id: Date.now(),
+                type: 'lend',
+                category: currentCategory,
+                item: itemName,
+                contact: selectedContact,
+                date: new Date().toISOString().split('T')[0],
+                dueDate: dueDate,
+                status: 'pending',
+                description: description
+            };
+
+            transactions.unshift(newTransaction);
+            saveTransactions();
+            
+            // Отправляем уведомление
+            const notificationSent = await sendNotificationToUser(selectedContact, newTransaction);
+            
+            if (notificationSent) {
+                showSuccessMessage('✅ Запись создана! Уведомление отправлено.');
+            } else {
+                showSuccessMessage('✅ Запись создана!');
+            }
+            
+            resetForm('lend');
+            renderHistory();
+            
+            setTimeout(() => {
+                showMainMenu();
+            }, 2000);
+        }
+
+        // Отправка уведомления
+        async function sendNotificationToUser(contact, transaction) {
+            const message = createNotificationMessage(contact, transaction);
+            
+            try {
+                const response = await fetch('/api/send-notification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: contact.username,
+                        message: message,
+                        transaction: transaction
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    return true;
+                } else {
+                    console.log('Ошибка отправки:', result.error);
+                    return false;
+                }
+                
+            } catch (error) {
+                console.error('Ошибка сети:', error);
+                return false;
+            }
+        }
+
+        function createNotificationMessage(contact, transaction) {
+            const currentUser = tg.initDataUnsafe.user;
+            const userName = currentUser ? currentUser.first_name : 'Пользователь';
+            
+            const action = transaction.type === 'borrow' ? 'взял(а) у вас' : 'отдал(а) вам';
+            const item = transaction.item;
+            const dueDate = formatDate(transaction.dueDate);
+            
+            return `📦 <b>LendTrack - Новая передача</b>\n\n` +
+                   `<b>${userName}</b> ${action}:\n` +
+                   `<b>${item}</b>\n\n` +
+                   `<b>📅 Срок возврата:</b> ${dueDate}\n` +
+                   `${transaction.description ? `<b>📝 Описание:</b> ${transaction.description}\n` : ''}`;
+        }
+
+        function showSuccessMessage(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.textContent = message;
+            
+            const card = document.querySelector('.form-section.active .card');
+            card.insertBefore(successDiv, card.firstChild);
+            
+            tg.HapticFeedback.impactOccurred('soft');
+        }
+
+        function validateForm(itemName, dueDate) {
+            if (!itemName) {
+                tg.showAlert('Введите название предмета');
+                return false;
+            }
+
+            if (!selectedContact) {
+                tg.showAlert('Выберите или создайте контакт');
+                return false;
+            }
+
+            if (!dueDate) {
+                tg.showAlert('Выберите дату возврата');
+                return false;
+            }
+
+            return true;
+        }
+
+        function resetForm(type) {
+            document.getElementById(type + 'ItemName').value = '';
+            document.getElementById(type + 'Description').value = '';
+            document.getElementById(type + 'SelectedContact').style.display = 'none';
+            document.getElementById(type + 'ContactInput').value = '';
+            selectedContact = null;
+        }
+
+        // История
+        function showHistoryTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            renderHistory(tab);
+        }
+
+        function renderHistory(filter = 'active') {
+            const container = document.getElementById('historyContent');
+            
+            let filteredTransactions = transactions;
+            if (filter === 'active') {
+                filteredTransactions = transactions.filter(t => t.status === 'pending');
+            }
+            
+            if (filteredTransactions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📋</div>
+                        <p>Пока нет записей</p>
+                        <p style="font-size: 14px; margin-top: 10px;">Создайте первую запись</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = filteredTransactions.map(transaction => `
+                <div class="card">
+                    <div class="transfer-item">
+                        <div class="item-info">
+                            <div class="item-name">
+                                ${transaction.type === 'borrow' ? '📥 Взял' : '📤 Отдал'} 
+                                ${getCategoryIcon(transaction.category)} 
+                                ${transaction.item}
+                            </div>
+                            <div class="item-meta">
+                                👤 ${transaction.contact.username}<br>
+                                📅 Вернуть: ${formatDate(transaction.dueDate)}
+                                ${transaction.description ? `<br>📝 ${transaction.description}` : ''}
+                            </div>
+                        </div>
+                        <div class="status status-${transaction.status}">
+                            ${getStatusText(transaction.status)}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Вспомогательные функции
+        function getCategoryIcon(category) {
+            const icons = {
+                'equipment': '🛠️',
+                'finance': '💰',
+                'other': '📦'
+            };
+            return icons[category] || '📦';
+        }
+
+        function getStatusText(status) {
+            return status === 'pending' ? 'Ожидает' : 'Завершено';
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU');
+        }
+
+        function saveTransactions() {
+            localStorage.setItem('lendtrack_transactions', JSON.stringify(transactions));
+        }
+
+        function saveContacts() {
+            localStorage.setItem('lendtrack_contacts', JSON.stringify(contactsDatabase));
+            localStorage.setItem('lendtrack_recent_contacts', JSON.stringify(recentContacts));
+        }
+
+        // Запускаем приложение
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
 </body>
 </html>
-// Функция отправки уведомления
-async function sendNotificationToUser(contact, transaction) {
-    const message = `📦 Новая передача!\n\n${transaction.item}`;
-    
-    try {
-        const response = await fetch('/api/send-notification', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                username: contact.username,
-                message: message,
-                transaction: transaction
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            tg.showAlert(`✅ ${result.message}`);
-            return true;
-        } else {
-            tg.showAlert(`❌ Ошибка: ${result.error}`);
-            return false;
-        }
-        
-    } catch (error) {
-        console.error('Ошибка:', error);
-        tg.showAlert('❌ Ошибка сети');
-        return false;
-    }
-}
