@@ -1,5 +1,3 @@
-const fetch = require('node-fetch');
-
 exports.handler = async (event) => {
   // Разрешаем CORS
   const headers = {
@@ -24,30 +22,22 @@ exports.handler = async (event) => {
 
   try {
     const { username, message, transaction } = JSON.parse(event.body);
-    const BOT_TOKEN = process.env.BOT_TOKEN;
-
-    // Проверяем токен
-    if (!BOT_TOKEN) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ 
-          success: false, 
-          error: 'Bot token not configured' 
-        })
-      };
-    }
-
-    // Имитируем отправку (пока без реального бота)
-    console.log('Отправка уведомления:', { username, message });
     
+    // Логируем запрос (в реальном приложении здесь будет отправка в Telegram)
+    console.log('📨 Уведомление:', { 
+      username, 
+      message, 
+      transactionId: transaction.id 
+    });
+    
+    // Имитируем успешную отправку
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
         success: true, 
         message: `Уведомление для ${username} отправлено!`,
-        test: true
+        test: true // Флаг что это тестовая отправка
       })
     };
 
