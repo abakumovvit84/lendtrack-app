@@ -1,3 +1,31 @@
+// В начале скрипта добавьте
+const tg = window.Telegram.WebApp;
+
+// Проверка что приложение запущено в Telegram
+if (tg.platform === 'unknown') {
+    // Если открыто в браузере, а не в Telegram
+    document.body.innerHTML = `
+        <div style="text-align: center; padding: 50px; font-family: Arial;">
+            <h1>📦 LendTrack</h1>
+            <p>Это приложение работает внутри Telegram</p>
+            <p>Чтобы использовать:</p>
+            <ol style="text-align: left; display: inline-block;">
+                <li>Откройте Telegram</li>
+                <li>Найдите бота @YourBotName</li>
+                <li>Нажмите кнопку "Open App"</li>
+            </ol>
+            <br>
+            <a href="https://t.me/YourBotName" 
+               style="background: #0088cc; color: white; padding: 12px 24px; 
+                      text-decoration: none; border-radius: 8px; display: inline-block;">
+                📲 Открыть в Telegram
+            </a>
+        </div>
+    `;
+} else {
+    // Запущено в Telegram - инициализируем приложение
+    initApp();
+}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
