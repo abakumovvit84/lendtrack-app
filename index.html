@@ -18,3 +18,36 @@
     <p>🚀 Все работает!</p>
 </body>
 </html>
+// Функция отправки уведомления
+async function sendNotificationToUser(contact, transaction) {
+    const message = `📦 Новая передача!\n\n${transaction.item}`;
+    
+    try {
+        const response = await fetch('/api/send-notification', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                username: contact.username,
+                message: message,
+                transaction: transaction
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            tg.showAlert(`✅ ${result.message}`);
+            return true;
+        } else {
+            tg.showAlert(`❌ Ошибка: ${result.error}`);
+            return false;
+        }
+        
+    } catch (error) {
+        console.error('Ошибка:', error);
+        tg.showAlert('❌ Ошибка сети');
+        return false;
+    }
+}
