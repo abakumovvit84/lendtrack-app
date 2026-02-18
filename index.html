@@ -6,6 +6,7 @@
     <title>LendTrack - Учет передач</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        /* --- Стили (полностью сохранены из предыдущей версии) --- */
         * {
             margin: 0;
             padding: 0;
@@ -646,7 +647,8 @@
     <script>
         // Инициализация Telegram Web App
         const tg = window.Telegram.WebApp;
-        
+        const BOT_USERNAME = '@LendTrack_bot';  // <-- Имя бота
+
         // Данные приложения
         let transactions = JSON.parse(localStorage.getItem('lendtrack_transactions') || '[]');
         let contactsDatabase = JSON.parse(localStorage.getItem('lendtrack_contacts') || '[]');
@@ -1015,7 +1017,38 @@
             hideContactSuggestions('lend');
         }
 
-        // Создание транзакций
+        // --- ОСНОВНЫЕ ИЗМЕНЕНИЯ ЗДЕСЬ: Обработка уведомлений ---
+        async function sendNotificationToUser(contact, transaction) {
+            const message = createNotificationMessage(contact, transaction);
+            
+            try {
+                const response = await fetch('/api/send-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: contact.username,
+                        message: message,
+                        transaction: transaction
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    return { sent: true };
+                } else {
+                    if (result.userNotFound) {
+                        return { sent: false, error: 'user_not_found', username: contact.username };
+                    }
+                    return { sent: false, error: result.error };
+                }
+                
+            } catch (error) {
+                console.error('Ошибка сети:', error);
+                return { sent: false, error: 'network' };
+            }
+        }
+
         async function createBorrowTransaction() {
             const itemName = document.getElementById('borrowItemName').value.trim();
             const dueDate = document.getElementById('borrowDueDate').value;
@@ -1038,10 +1071,13 @@
             transactions.unshift(newTransaction);
             saveTransactions();
             
-            const notificationSent = await sendNotificationToUser(selectedContact, newTransaction);
-            
-            if (notificationSent) {
+            const notificationResult = await sendNotificationToUser(selectedContact, newTransaction);
+
+            if (notificationResult.sent) {
                 showSuccessMessage('✅ Запись создана! Уведомление отправлено.');
+            } else if (notificationResult.error === 'user_not_found') {
+                tg.showAlert(`❌ Пользователь ${notificationResult.username} не запускал бота. Попросите его написать /start ${BOT_USERNAME}`);
+                showSuccessMessage('✅ Запись создана, но уведомление не доставлено.');
             } else {
                 showSuccessMessage('✅ Запись создана!');
             }
@@ -1076,10 +1112,13 @@
             transactions.unshift(newTransaction);
             saveTransactions();
             
-            const notificationSent = await sendNotificationToUser(selectedContact, newTransaction);
-            
-            if (notificationSent) {
+            const notificationResult = await sendNotificationToUser(selectedContact, newTransaction);
+
+            if (notificationResult.sent) {
                 showSuccessMessage('✅ Запись создана! Уведомление отправлено.');
+            } else if (notificationResult.error === 'user_not_found') {
+                tg.showAlert(`❌ Пользователь ${notificationResult.username} не запускал бота. Попросите его написать /start ${BOT_USERNAME}`);
+                showSuccessMessage('✅ Запись создана, но уведомление не доставлено.');
             } else {
                 showSuccessMessage('✅ Запись создана!');
             }
@@ -1090,38 +1129,6 @@
             setTimeout(() => {
                 showMainMenu();
             }, 2000);
-        }
-
-        // Отправка уведомления
-        async function sendNotificationToUser(contact, transaction) {
-            const message = createNotificationMessage(contact, transaction);
-            
-            try {
-                const response = await fetch('/api/send-notification', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        username: contact.username,
-                        message: message,
-                        transaction: transaction
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    return true;
-                } else {
-                    console.log('Ошибка отправки:', result.error);
-                    return false;
-                }
-                
-            } catch (error) {
-                console.error('Ошибка сети:', error);
-                return false;
-            }
         }
 
         function createNotificationMessage(contact, transaction) {
@@ -1226,7 +1233,6 @@
             `).join('');
         }
 
-        // Вспомогательные функции
         function getCategoryIcon(category) {
             const icons = {
                 'equipment': '🛠️',
@@ -1260,7 +1266,7 @@
                 <div style="text-align: center; padding: 50px;">
                     <h1>📦 LendTrack</h1>
                     <p>Это приложение работает внутри Telegram</p>
-                    <p>Откройте бота @LendTrackBot чтобы использовать приложение</p>
+                    <p>Откройте бота ${BOT_USERNAME} чтобы использовать приложение</p>
                 </div>
             `;
         } else {
