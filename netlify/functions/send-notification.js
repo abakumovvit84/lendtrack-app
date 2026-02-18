@@ -35,13 +35,10 @@ exports.handler = async (event) => {
       };
     }
 
-    // Очищаем username от @
     const cleanUsername = username.replace('@', '');
-
-    // Отправляем сообщение через Telegram Bot API
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
     const payload = {
-      chat_id: `@${cleanUsername}`,  // можно использовать @username
+      chat_id: `@${cleanUsername}`,
       text: message,
       parse_mode: 'HTML',
       reply_markup: {
@@ -73,7 +70,8 @@ exports.handler = async (event) => {
         })
       };
     } else {
-      // Ошибка – вероятно, пользователь не запускал бота
+      // Проверяем, не потому ли ошибка, что пользователь не писал боту
+      const userNotFound = result.description && result.description.includes('chat not found');
       console.log(`❌ Не удалось отправить @${cleanUsername}: ${result.description}`);
       return {
         statusCode: 200,
@@ -81,7 +79,7 @@ exports.handler = async (event) => {
         body: JSON.stringify({ 
           success: false, 
           error: result.description,
-          userNotFound: result.description.includes('chat not found') 
+          userNotFound: userNotFound
         })
       };
     }
